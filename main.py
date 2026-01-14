@@ -5,7 +5,7 @@
 
 # initialisation du compte
 compte = {
-    'solde' : 40000.0
+    'solde' : 20000.0
 }
 
 #Initialisation du code ussd, du code secret et du numero de l'utilisatteur
@@ -26,7 +26,7 @@ def solde_json():
 
     #Verifier si le fichier json existe ou pas 
     if not os.path.exists(fichier_json):
-        print(f"{'ussd.json'} n'existe pas")
+        print(f"{fichier_json} n'existe pas")
         return
     try:
         with open(fichier_json, 'r') as f:
@@ -42,6 +42,7 @@ def solde_json():
 def sauvegarder():
     global compte
     global historique
+
     compte_donnees = { 
         'solde': compte['solde'],
         'transactions': historique
@@ -51,7 +52,6 @@ def sauvegarder():
     with open(fichier_json, "w") as fichier: 
         json.dump(compte_donnees, fichier , indent=4)  
 
- 
 # Fin sauvetage
 
 # Charger les données du fichier json
@@ -106,7 +106,7 @@ def code_pin(): #code secret
 
 #Fonction de consultation de solde 
 def consulter_solde():
-    print("-"*50,"\n1. Consulter le solde \n",50*"-")
+    print("-"*50,"\n\n1. Consulter le solde \n",50*"-")
     print(f"\nVotre solde Orange Money est de {compte['solde']} FCFA")
     print("\n9.Precedent")
 #Fin consultation
@@ -114,8 +114,9 @@ def consulter_solde():
 #Effectuer des transferts d'argent
 def effectuer_transfert():
     global historique
+    global compte
 
-    print("-"*40,"\n Effectuer des transferts \n","-"*40)
+    print("-"*40,"\n\n 2. Effectuer des transferts \n\n","-"*40)
     #DONNER LE NUMERO à ENVOYER
     while True:
         try:
@@ -147,7 +148,7 @@ def effectuer_transfert():
                 print(f"Votre solde est insuffisant et est de {compte['solde']} FCFA \n")
             else:
                 compte['solde'] = compte['solde'] - montant
-                print(f"Trasfert réussi! : nouveau solde = {compte['solde']} FCFA \n") 
+                print(f"Transfert réussi! : nouveau solde = {compte['solde']} FCFA \n") 
                 sauvegarder()
                 break
         except ValueError:
@@ -171,8 +172,8 @@ def effectuer_transfert():
     #Mettre a jour dans le fichier json
     sauvegarder()
 
-    print(f"Vous avez envoyer {montant} FCFA au {numero_saisi}")
-    print(f"Transfer effectuer avec succes! Votre nouveau solde est de {compte['solde']} FCFA")
+    print(f"Vous avez envoyé {montant} FCFA au {numero_saisi}")
+    print(f"Transfert effectuer avec succes! Votre nouveau solde est de {compte['solde']} FCFA\n")
 #Fin transfert
 
 #Historique de tous les transferts effectués
@@ -180,14 +181,14 @@ def transferts_historique():
     global historique
     print("-"*40,"\nAffichage de l'historique de tous les transferts effectués,\n","-"*40)
     
-    # # Recuperation de tous les historiques effectués
+    # Recuperation de tous les historiques effectués
     tout_historique = None #initialisons 
     for i in range(len(historique)):
         if historique[i]['type'] == 'transfert':
             tout_historique = historique[i]
             break
     if not tout_historique:
-        print("Pas de transfert effectué pour le moment!")
+        print("\nPas de transfert effectué pour le moment!\n")
         return
 
     #Affichage des transferts
@@ -207,12 +208,9 @@ def annuler_transfert():
         print("Aucun transfert à annuler")
         return
     
-    #Recuperons le dernier transfert
-    dernier_transfert = None
-    for i in range(len(historique)-1): 
-        if historique[i]['type'] == 'transfert':
-            dernier_transfert = historique[i]
-            break
+    #Recuperons le dernier transfert        
+    dernier_transfert = historique[-1]
+        
 
     if not dernier_transfert:
         print("Aucun transfert à annuler")
@@ -234,7 +232,7 @@ def annuler_transfert():
        
         # Annuler le transfert
         compte['solde'] += dernier_transfert['montant']
-
+        sauvegarder()
         # Marquer le transfert comme annulé
         dernier_transfert['annule'] = True
 
