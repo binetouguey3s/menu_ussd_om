@@ -1,54 +1,62 @@
 # Lien gitHub: https://github.com/binetouguey3s/menu_ussd_om
 
 
+#Debut du projet sur la simulation USSD Orange Money 
+
+# initialisation du compte
 compte = {
-    'solde' : 4000.0
+    'solde' : 40000.0
 }
 
+#Initialisation du code ussd, du code secret et du numero de l'utilisatteur
 code = "#144#"
 code_secret = "4321"
 numero = "771234567"
 historique = [] #stockage du dernier transfert effectuer
-historique_transaction = [] #stockage de tous les transferts effectués
-
 
 # Pour sauvegarder et charger nos données avec json
-import os   
-import json
-fichier_json = "ussd.json"
+
+import os   #Module pour interagir avec le terminal 
+import json #Module pour créer des fichier json 
+
+fichier_json = "ussd.json" #Nom du fichier json
+
 #Voir si on modifie le solde directement sur ussd.json
 def solde_json():
+
+    #Verifier si le fichier json existe ou pas 
     if not os.path.exists(fichier_json):
         print(f"{'ussd.json'} n'existe pas")
         return
     try:
         with open(fichier_json, 'r') as f:
-            donnees = json.load(f) #
-            solde = donnees.get('solde') # recuperer le solde
-            print(f"Le solde actuel est de: {solde} FCFA") #
-    except json.JSONDecodeError:
-        print("Erreur lors de la lecture du fichier_json.")
+            donnees = json.load(f) # Chargement des donnees
+            solde = donnees.get('solde') # Recuperer le solde
+            print("\n Modifier le solde dans le json directement puis voir dans le terminal \n")
+            print(f"Le solde actuel est de: {solde} FCFA") #Afficher le solde
+    except json.JSONDecodeError:  
+        print("Le fichier_n'est pas un fichier json.")
 # Fin solde_json
 
 # Sauvegarder les données dans un fichier json 
 def sauvegarder():
     global compte
-    global historique_transaction 
-    historique_transaction.extend(historique) #mis a jour de l'historique des transactions
+    global historique
     compte_donnees = { 
         'solde': compte['solde'],
-        'transactions': historique_transaction
+        'transactions': historique
     }
-    compte = compte_donnees #mis a jour le compte
-
+        
     fichier_json = "ussd.json" # nom du fichier json
     with open(fichier_json, "w") as fichier: 
-        json.dump(compte, fichier , indent=4)  
+        json.dump(compte_donnees, fichier , indent=4)  
+
+ 
 # Fin sauvetage
 
 # Charger les données du fichier json
 def charger():
-    global historique_transaction, compte
+    global compte 
 
     fichier_json = "ussd.json"
     with open("ussd.json", "r") as fichier: 
@@ -56,9 +64,9 @@ def charger():
         return ussd_fichier 
    
     with open(fichier_json, "r") as f: 
-        donnee = json.load(f)
-        compte['solde'] = donnee.get('solde', compte['solde']) #mis a jour le solde
-        historique_transaction.extend(donnee.get('transactions', []))#mis a jour l'historique des transactions
+        donnees = json.load(f)
+        return donnees
+       
 
 # Fin chargement    
 # Fonction principal
@@ -67,19 +75,19 @@ def menu_principal():
     print("1. Consulter le solde Orange Money")
     print("2. Effectuer des transferts")
     print("3. Acheter du crédit")
-    print("4. Autres fonctionnalités a venir")
-    print("5. Forfaits Internet")
-    print("6. Annuler_transfert")  
-    print("7. Historique des transferts")
+    print("4. Forfaits Internet")
+    print("5. Annuler_transfert")
+    print("6. Historique des transferts")  
+    print("7. Modifier le solde directement sur ussd.json")
     print("0. Quitter\n")
 #Sous menu_principale
 
 #Code de validation gerer la saisie
 def code_ussd(): # code d'acces OM
     while True:
-        code_valide = input("Saisir le code pour acceder au service d'Orange Money:  ")
+        code_valide = input(" \n Saisir le code pour acceder au service d'Orange Money:  ")
         if code_valide == code:
-            print("Accès autorisé")
+            print("Accès autorisé!")
             break
         else:
             print("Veuillez saisir le bon code qui est #144#")
@@ -98,51 +106,54 @@ def code_pin(): #code secret
 
 #Fonction de consultation de solde 
 def consulter_solde():
-    print(f"Votre solde Orange Money est de {compte['solde']} FCFA")
-    print("9. precedent")        
+    print("-"*50,"\n1. Consulter le solde \n",50*"-")
+    print(f"\nVotre solde Orange Money est de {compte['solde']} FCFA")
+    print("\n9.Precedent")
 #Fin consultation
 
 #Effectuer des transferts d'argent
 def effectuer_transfert():
     global historique
 
-    print("Fonction pour effectuer des transferts")
+    print("-"*40,"\n Effectuer des transferts \n","-"*40)
     #DONNER LE NUMERO à ENVOYER
     while True:
         try:
-            numero_saisi =input("Donnez le numero à transferer").strip()
+            numero_saisi =input("Donnez le numero à transferer:   ").strip()
             if len(numero_saisi) != 9:
                 print("Le numero doit contenir 9 chiffres")
                 continue
             if not numero_saisi.isdigit():
-                print("Le numero doit contenir que des chiffres")
+                print("\n Le numero doit contenir que des chiffres")
                 continue
             if not (numero_saisi.startswith("77") or numero_saisi.startswith("78")):
-                print("Le numero doit commencer par 77, 78")
+                print("\n Le numero doit commencer par 77, 78")
                 continue
             break
         except ValueError:
-            print("Saisissez un numero valide")
+            print("Saisissez un numero valide\n")
 
     #Donner le montant
     while True:
         try:
-            montant = float(input("Saisir le montant: \n"))
+            montant = float(input("Saisir le montant:  "))
+
+            #Verification du code pin
+            code_pin()
+            
             if montant < 5:
                 print("Le montant doir etre superieur a 5")
             elif montant > compte['solde']:
                 print(f"Votre solde est insuffisant et est de {compte['solde']} FCFA \n")
             else:
                 compte['solde'] = compte['solde'] - montant
-                print(f"Trasfert réussi! : nouveau solde = {compte['solde']}") 
+                print(f"Trasfert réussi! : nouveau solde = {compte['solde']} FCFA \n") 
                 sauvegarder()
                 break
         except ValueError:
                 print("Saisissez un montant valide")
 
-    #Verification du code pin
-    if not code_pin():
-        return #retourne au menu si incorrect
+    
     
     # Effectuer le transfert
     ancien_solde = compte['solde']
@@ -164,16 +175,16 @@ def effectuer_transfert():
     print(f"Transfer effectuer avec succes! Votre nouveau solde est de {compte['solde']} FCFA")
 #Fin transfert
 
-#Historique de tous les transferts effectuer
+#Historique de tous les transferts effectués
 def transferts_historique(): 
-    global historique_transaction
+    global historique
     print("-"*40,"\nAffichage de l'historique de tous les transferts effectués,\n","-"*40)
     
-    # Recuperation de tous les historiques effectués
+    # # Recuperation de tous les historiques effectués
     tout_historique = None #initialisons 
-    for i in range(len(historique_transaction)):
-        if historique_transaction[i]['type'] == 'transfert':
-            tout_historique = historique_transaction[i]#
+    for i in range(len(historique)):
+        if historique[i]['type'] == 'transfert':
+            tout_historique = historique[i]
             break
     if not tout_historique:
         print("Pas de transfert effectué pour le moment!")
@@ -181,12 +192,10 @@ def transferts_historique():
 
     #Affichage des transferts
     print("Historique des transferts effectués:")
-    for transfert in historique_transaction:
-        if transfert['type'] == 'transfert':
-            print(f"  Montant: {transfert['montant']} FCFA")
-            print(f"  Destinataire: {transfert['numero_saisi']}")
-            print(f"  Solde avant: {transfert['solde_avant']} FCFA")
-            print(f"  Solde apres: {transfert['solde_apres']} FCFA")            
+    print(f"  Montant: {tout_historique['montant']} FCFA")
+    print(f"  Destinataire: {tout_historique['numero_saisi']}")
+    print(f"  Solde avant: {tout_historique['solde_avant']} FCFA")
+    print(f"  Solde apres: {tout_historique['solde_apres']} FCFA")            
 #Fin affichage historique de transfert
 
 #Fonction pour annuler un transfert
@@ -200,7 +209,7 @@ def annuler_transfert():
     
     #Recuperons le dernier transfert
     dernier_transfert = None
-    for i in range(len(historique)-1, -1, -1): 
+    for i in range(len(historique)-1): 
         if historique[i]['type'] == 'transfert':
             dernier_transfert = historique[i]
             break
@@ -221,8 +230,7 @@ def annuler_transfert():
     confirmer = input("Voulez vous annuler ce transfert? Repondez par Oui ou Non:  ").lower().strip()
 
     if confirmer == 'oui':
-        if not code_pin():
-            return  
+        code_pin()
        
         # Annuler le transfert
         compte['solde'] += dernier_transfert['montant']
@@ -256,7 +264,7 @@ def acheter_credit():
         if choix_achat == "1":
             while True:
                 try:               
-                    montant = float(input("Saisir le montant: \n"))
+                    montant = float(input("Saisir le montant:   "))
                     if montant > compte['solde']:
                         print("Le montant doit etre inferieur au solde\n")
                     elif montant < 5:
@@ -273,22 +281,20 @@ def acheter_credit():
                 #Fin
                 #Option 2. Pour un autre numero
         elif choix_achat == "2":
-            print("Vous allez acheter du credit telephonique \n pour un autre numero Orange ou Kirene avec Orange ou \n flexbox.\n")
+            print("Vous allez acheter du credit telephonique\npour un autre numero Orange ou Kirene avec Orange ou\nflexbox.\n")
             while True:
-                montant = float(input("Saisir le montant\n"))
+                montant = float(input("Saisir le montant:  "))
                 if montant < 5:  
-                    print("Le montant doit etre superieur a 5\n")
+                    print("Le montant doit etre superieur a 5 \n")
                     continue  
                 break
 
             while True:
-                numero_saisi = input("Donnez le numero telephonique")
+                numero_saisi = input("Donnez le numero telephonique:  ")
                 if len(numero_saisi) == 9 and numero_saisi.isdigit():
                     break
-            print("...") 
 
-            if not code_pin():
-                return
+            code_pin()
             compte['solde'] = compte['solde'] - montant 
             print(f"Vous avez acheter {montant} FCFA de credit sur le {numero_saisi} ")
             sauvegarder()
@@ -297,12 +303,6 @@ def acheter_credit():
     menu_principal()
 #Fin achat
 
-#Autres
-def autre():
-    print(" Autres fonctionnalite à venir ")
-    print("9. precedent")
-#Fin autre
-
 #Fonction pour forfait internet
 def forfait_internet():
     while True:
@@ -310,6 +310,7 @@ def forfait_internet():
         print("1.  Pass 100 Mo - 500 FCFA ")
         print("2.  Pass 500 Mo - 1 000 FCFA")
         print("3.  Pass 1 Go - 2 000 FCFA")
+        print("9.  Quitter")
 
         choix_achat = input("Choisir une option entre 1 et 3 et 9 :  ")
             
@@ -376,23 +377,15 @@ def forfait_3():
 
 #Debut Fonctions principales 
 def main():
-    print("Nouvelles fonctionnalites avec json") 
-    code_ussd() #144#
+    print("-"*60,"\n \nPersistance du projet USSD Orange Money (version simplifiée\n \n","-"*60) 
+    code_ussd() 
     sauvegarder() 
     charger() 
-    solde_json()
-    try:
-        while True: #
-            input("Appuyez sur Entrée pour voir le solde actuel et si tu clique sur controle c tu pour pourra sortiret retourner au menu principal \n")
-            solde_json()
-    except KeyboardInterrupt: 
-        print("Fermer la consultation du solde.\n") 
-
-   
+    
     while True:
         menu_principal()
 
-        choix_option = input("\n Choisir une option entre 0 et 9: \n")
+        choix_option = input("Choisir une option entre 0 et 9:  ")
         if choix_option == "1":
             consulter_solde()   
         elif choix_option == "2":
@@ -400,13 +393,19 @@ def main():
         elif choix_option == "3":
             acheter_credit()
         elif choix_option == "4":
-            autre()
-        elif choix_option == "5":
             forfait_internet()   
-        elif choix_option == "6":
+        elif choix_option == "5":
             annuler_transfert()  
-        elif choix_option == "7":
+        elif choix_option == "6":
             transferts_historique()
+        elif choix_option == "7":
+            solde_json()
+            try:
+                while True: 
+                    input("Appuyez sur Entrée \n")
+                    solde_json()
+            except KeyboardInterrupt: 
+                print("Fermer la consultation du solde.\n") 
         elif choix_option == "0":
             print("\nQuitter")
             break
