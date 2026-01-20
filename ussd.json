@@ -1,4 +1,27 @@
 {
-    "solde": 400.0,
-    "transactions": []
+    "solde": 1989000.0,
+    "transactions": [
+        {
+            "type": "transfert",
+            "numero_saisi": "776782233",
+            "montant": 1000.0,
+            "solde_avant": 2000000.0,
+            "solde_apres": 1999000.0
+        },
+        {
+            "type": "transfert",
+            "numero_saisi": "777893322",
+            "montant": 4000.0,
+            "solde_avant": 1999000.0,
+            "solde_apres": 1995000.0,
+            "annule": true
+        },
+        {
+            "type": "transfert",
+            "numero_saisi": "772347833",
+            "montant": 10000.0,
+            "solde_avant": 1999000.0,
+            "solde_apres": 1989000.0
+        }
+    ]
 }
