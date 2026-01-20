@@ -5,7 +5,7 @@
 
 # initialisation du compte
 compte = {
-    'solde' : 20000.0
+    'solde' : 2000000.0
 }
 
 #Initialisation du code ussd, du code secret et du numero de l'utilisatteur
@@ -57,18 +57,39 @@ def sauvegarder():
 # Charger les données du fichier json
 def charger():
     global compte 
+    global historique
 
-    fichier_json = "ussd.json"
-    with open("ussd.json", "r") as fichier: 
-        ussd_fichier = json.load(fichier)
-        return ussd_fichier 
-   
-    with open(fichier_json, "r") as f: 
-        donnees = json.load(f)
-        return donnees
-       
-
+    # Vérifier si le fichier existe
+    if not os.path.exists(fichier_json):
+        print(f"Fichier {fichier_json} INEXISTANT.")
+        sauvegarder()
+        return
+    
+    try:
+        with open(fichier_json, "r") as fichier: 
+            donnees = json.load(fichier)
+            
+            # Charger le solde
+            compte['solde'] = donnees.get('solde', 20000.0)
+            
+            # Charger l'historique
+            historique.clear()  # Vider l'historique actuel
+            transactions = donnees.get('transactions', [])
+            historique.extend(transactions)
+            
+            print(f" Données chargées depuis {fichier_json}")
+            print(f"  Solde: {compte['solde']} FCFA")
+            print(f"  Nombre de transactions: {len(historique)}")
+            return donnees
+            
+    except json.JSONDecodeError:
+        print(f"Erreur: Le fichier {fichier_json} est corrompu")
+        sauvegarder()
+    except Exception as e:
+        print(f"Erreur lors du chargement: {e}")
+        sauvegarder()
 # Fin chargement    
+
 # Fonction principal
 def menu_principal():
     print("-"*40,"\n Menu principal du services USSD OM \n","-"*40)
@@ -147,33 +168,29 @@ def effectuer_transfert():
             elif montant > compte['solde']:
                 print(f"Votre solde est insuffisant et est de {compte['solde']} FCFA \n")
             else:
-                compte['solde'] = compte['solde'] - montant
-                print(f"Transfert réussi! : nouveau solde = {compte['solde']} FCFA \n") 
+                   
+                # Effectuer le transfert
+                ancien_solde = compte['solde']
+                compte['solde'] -= montant
+
+                #Ajout à l'historique
+                transfert = {
+                    'type': 'transfert',
+                    'numero_saisi': numero_saisi,
+                    'montant': montant,
+                    'solde_avant': ancien_solde,
+                    'solde_apres': compte['solde']
+                }
+                historique.append(transfert)
+
+                #sauvegarder après ajout à l'historique
                 sauvegarder()
+
+                print(f"Vous avez envoyé {montant} FCFA au {numero_saisi}")
+                print(f"Transfert réussi! : nouveau solde = {compte['solde']} FCFA \n") 
                 break
         except ValueError:
                 print("Saisissez un montant valide")
-
-    
-    
-    # Effectuer le transfert
-    ancien_solde = compte['solde']
-    compte['solde'] -= montant
-    
-     # Ajouter à l'historique
-    transfert = {
-        'type': 'transfert',
-        'numero_saisi': numero_saisi,
-        'montant': montant,
-        'solde_avant': ancien_solde,
-        'solde_apres': compte['solde']
-    }
-    historique.append(transfert)
-    #Mettre a jour dans le fichier json
-    sauvegarder()
-
-    print(f"Vous avez envoyé {montant} FCFA au {numero_saisi}")
-    print(f"Transfert effectuer avec succes! Votre nouveau solde est de {compte['solde']} FCFA\n")
 #Fin transfert
 
 #Historique de tous les transferts effectués
@@ -182,21 +199,20 @@ def transferts_historique():
     print("-"*40,"\nAffichage de l'historique de tous les transferts effectués,\n","-"*40)
     
     # Recuperation de tous les historiques effectués
-    tout_historique = None #initialisons 
-    for i in range(len(historique)):
-        if historique[i]['type'] == 'transfert':
-            tout_historique = historique[i]
-            break
-    if not tout_historique:
+    if not historique:
         print("\nPas de transfert effectué pour le moment!\n")
         return
 
     #Affichage des transferts
     print("Historique des transferts effectués:")
-    print(f"  Montant: {tout_historique['montant']} FCFA")
-    print(f"  Destinataire: {tout_historique['numero_saisi']}")
-    print(f"  Solde avant: {tout_historique['solde_avant']} FCFA")
-    print(f"  Solde apres: {tout_historique['solde_apres']} FCFA")            
+    for i, transfert in enumerate(historique, 1):
+        if transfert.get('type') == 'transfert':
+            print(f"\nTransfert {i}:")
+            print(f"  Montant: {transfert['montant']} FCFA")
+            print(f"  Destinataire: {transfert['numero_saisi']}")
+            print(f"  Solde avant: {transfert['solde_avant']} FCFA")
+            print(f"  Solde apres: {transfert['solde_apres']} FCFA")    
+    print(f"\nNombre total de transferts: {len([t for t in historique if t.get('type') == 'transfert'])}")      
 #Fin affichage historique de transfert
 
 #Fonction pour annuler un transfert
@@ -208,14 +224,25 @@ def annuler_transfert():
         print("Aucun transfert à annuler")
         return
     
-    #Recuperons le dernier transfert        
-    dernier_transfert = historique[-1]
-        
-
-    if not dernier_transfert:
+       # Récupérer les transferts non annulés
+    transferts_non_annules = [t for t in historique if t.get('type') == 'transfert' and not t.get('annule', False)]
+    
+    if not transferts_non_annules:
         print("Aucun transfert à annuler")
         return
     
+    # Récupérer le dernier transfert non annulé
+    dernier_transfert = transferts_non_annules[-1]
+    
+    # Trouver l'index dans l'historique complet
+    for i in range(len(historique)-1, -1, -1):
+        if historique[i].get('type') == 'transfert' and not historique[i].get('annule', False):
+            index_dernier = i
+            break
+    else:
+        print("Erreur: transfert non trouvé")
+        return
+
     #Affichons les derniers transferts
     print(f"Dernier transfert trouvé:")
     print(f"  Montant: {dernier_transfert['montant']} FCFA")
@@ -228,17 +255,21 @@ def annuler_transfert():
     confirmer = input("Voulez vous annuler ce transfert? Repondez par Oui ou Non:  ").lower().strip()
 
     if confirmer == 'oui':
-        code_pin()
+        if not code_pin():
+            print("Code PIN incorrect. Annulation annulée.")
+            return
        
-        # Annuler le transfert
+        # Annuler le transfert - restaurer le solde
         compte['solde'] += dernier_transfert['montant']
+        
+        # Marquer le transfert comme annulé dans l'historique
+        historique[index_dernier]['annule'] = True
+        
+        # Sauvegarder les modifications
         sauvegarder()
-        # Marquer le transfert comme annulé
-        dernier_transfert['annule'] = True
 
         print(f"\nTransfert annulé avec succès!")
-
-        print(f"{dernier_transfert['montant']} FCFA ont été réintégrés à votre compte.  \n")
+        print(f"{dernier_transfert['montant']} FCFA ont été réintégrés à votre compte.")
         print(f"Votre nouveau solde est de {compte['solde']} FCFA \n")
     else:
         print("Annulation de transfert annulée.")
@@ -376,9 +407,9 @@ def forfait_3():
 #Debut Fonctions principales 
 def main():
     print("-"*60,"\n \nPersistance du projet USSD Orange Money (version simplifiée\n \n","-"*60) 
-    code_ussd() 
-    sauvegarder() 
     charger() 
+
+    code_ussd() 
     
     while True:
         menu_principal()
@@ -405,6 +436,8 @@ def main():
             except KeyboardInterrupt: 
                 print("Fermer la consultation du solde.\n") 
         elif choix_option == "0":
+            sauvegarder() 
+
             print("\nQuitter")
             break
         elif choix_option == "9":
@@ -413,4 +446,3 @@ def main():
             print("Choix invalide, saisie encore")       
 main()
             
-
